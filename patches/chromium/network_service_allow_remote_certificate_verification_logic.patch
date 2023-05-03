@@ -147,7 +147,7 @@ index 911317d27c72fc77d6ae3ecf222538e0afec5c06..3c8c72eca43b5842a17f502d3b705c27
  
    builder.SetCertVerifier(IgnoreErrorsCertVerifier::MaybeWrapCertVerifier(
 diff --git a/services/network/network_context.h b/services/network/network_context.h
-index 34b92d40efedb02efd42a8805c7630efd1fd2005..574434c94e0ee145c9a86566baa04d1c054b0dff 100644
+index 34b92d40efedb02efd42a8805c7630efd1fd2005..ea56c5931c02d9081aea1682968d337d72da6137 100644
 --- a/services/network/network_context.h
 +++ b/services/network/network_context.h
 @@ -114,6 +114,7 @@ class URLMatcher;
@@ -171,7 +171,7 @@ index 34b92d40efedb02efd42a8805c7630efd1fd2005..574434c94e0ee145c9a86566baa04d1c
    std::vector<base::OnceClosure> dismount_closures_;
  #endif  // BUILDFLAG(IS_DIRECTORY_TRANSFER_REQUIRED)
  
-+  RemoteCertVerifier* remote_cert_verifier_ = nullptr;
++  raw_ptr<RemoteCertVerifier> remote_cert_verifier_ = nullptr;
 +
    // Created on-demand. Null if unused.
    std::unique_ptr<HostResolver> internal_host_resolver_;

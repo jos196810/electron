@@ -753,8 +753,6 @@ WebContents::WebContents(v8::Isolate* isolate,
 
   // Init embedder earlier
   options.Get("embedder", &embedder_);
-
-  // Whether to enable DevTools.
   options.Get("devTools", &enable_devtools_);
 
   // BrowserViews are not attached to a window initially so they should start
