@@ -183,6 +183,9 @@ env-macos-build: &env-macos-build
   # Disable pre-compiled headers to reduce out size, only useful for rebuilds
   GN_BUILDFLAG_ARGS: 'enable_precompiled_headers = false'
 
+env-dangling-raw-ptr-checks: &env-dangling-raw-ptr-checks
+  GN_EXTRA_ARGS: 'enable_backup_ref_ptr_support = true enable_dangling_raw_ptr_checks = true'
+
 # Individual (shared) steps.
 step-maybe-notify-slack-failure: &step-maybe-notify-slack-failure
   run:
@@ -1494,14 +1497,18 @@ commands:
               echo "Piping output to ASAN_SYMBOLIZE ($ASAN_SYMBOLIZE)"
               (cd electron && node script/yarn test --runners=main --trace-uncaught --enable-logging --files $(circleci tests glob spec/*-spec.ts | circleci tests split --split-by=timings)) 2>&1 | $ASAN_SYMBOLIZE
             else
-              if [ "$TARGET_ARCH" == "arm" ] || [ "$TARGET_ARCH" == "arm64" ]; then
-                export ELECTRON_SKIP_NATIVE_MODULE_TESTS=true
-                (cd electron && node script/yarn test --runners=main --trace-uncaught --enable-logging)
+              if [ "$IS_DANGLING_PTR_CHECK" == "1" ]; then
+                (cd electron && node script/yarn test --runners=main --trace-uncaught --enable-logging --enable-features=PartitionAllocBackupRefPtr,PartitionAllocDanglingPtr --files $(circleci tests glob spec/*-spec.ts | circleci tests split --split-by=timings))
               else
-                if [ "$TARGET_ARCH" == "ia32" ]; then
-                  npm_config_arch=x64 node electron/node_modules/dugite/script/download-git.js
+                if [ "$TARGET_ARCH" == "arm" ] || [ "$TARGET_ARCH" == "arm64" ]; then
+                  export ELECTRON_SKIP_NATIVE_MODULE_TESTS=true
+                  (cd electron && node script/yarn test --runners=main --trace-uncaught --enable-logging)
+                else
+                  if [ "$TARGET_ARCH" == "ia32" ]; then
+                    npm_config_arch=x64 node electron/node_modules/dugite/script/download-git.js
+                  fi
+                  (cd electron && node script/yarn test --runners=main --trace-uncaught --enable-logging --files $(circleci tests glob spec/*-spec.ts | circleci tests split --split-by=timings))
                 fi
-                (cd electron && node script/yarn test --runners=main --trace-uncaught --enable-logging --files $(circleci tests glob spec/*-spec.ts | circleci tests split --split-by=timings))
               fi
             fi
       - run:
@@ -1713,6 +1720,7 @@ jobs:
       <<: *env-global
       <<: *env-testing-build
       <<: *env-ninja-status
+      <<: *env-dangling-raw-ptr-checks
       GCLIENT_EXTRA_ARGS: '--custom-var=checkout_arm=True --custom-var=checkout_arm64=True'
     steps:
       - electron-build:
@@ -2072,6 +2080,7 @@ jobs:
       <<: *env-linux-medium
       <<: *env-headless-testing
       <<: *env-stack-dumping
+      IS_DANGLING_PTR_CHECK: '1'
     parallelism: 3
     steps:
       - electron-tests:
